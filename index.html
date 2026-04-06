@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPSC</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #f0f7ff;
+        --surface: #ffffff;
+        --card: #ffffff;
+        --border: #dbeafe;
+        --primary: #0284c7;
+        --sky: #38bdf8;
+        --succ: #059669;
+        --err: #dc2626;
+        --text: #0f172a;
+        --muted: #64748b;
+    }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; padding-bottom: 50px; }
+
+.app-header {
+    background: var(--surface); border-bottom: 2px solid var(--border); padding: 15px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(2, 132, 199, 0.1);
+}
+.app-header h1 { font-family: 'Orbitron'; font-size: 0.85rem; color: var(--primary); letter-spacing: 2px; cursor: pointer; }
+#timer { font-family: 'Orbitron'; font-size: 1.1rem; color: #fff; background: var(--primary); padding: 6px 14px; border-radius: 8px; }
+
+.screen { display: none; padding: 20px; max-width: 1000px; margin: 0 auto; }
+.screen.active { display: block; }
+
+.tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--primary); cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; transition: 0.2s; font-weight: bold; }
+.tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.topic-card {
+    background: linear-gradient(145deg, #ffffff, #f0f7ff);
+    border: 2px solid var(--border); border-radius: 16px; padding: 32px 25px;
+    text-align: center; cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+    position: relative; overflow: hidden;
+}
+.topic-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--primary), var(--sky));
+    opacity: 0; transition: opacity 0.2s ease;
+}
+.topic-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: var(--sky);
+    background: linear-gradient(145deg, #ffffff, #e0f2fe);
+    box-shadow: 0 12px 28px rgba(2, 132, 199, 0.18);
+}
+.topic-card:hover::before { opacity: 1; }
+.topic-card:active { transform: translateY(-2px) scale(0.99); }
+.topic-card.set-card:hover { transform: translateY(-7px) scale(1.03); box-shadow: 0 16px 32px rgba(0,0,0,0.13); }
+.topic-card h3 { color: var(--primary); font-size: 1rem; font-weight: 700; line-height: 1.4; }
+.topic-card .card-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+.topic-card .card-meta { font-size: 0.7rem; color: var(--muted); margin-top: 8px; }
+
+.q-card { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 25px; margin-bottom: 15px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+.bookmark-btn { position: absolute; right: 20px; top: 20px; font-size: 1.5rem; cursor: pointer; color: #cbd5e1; transition: 0.2s; }
+.bookmark-btn.active { color: #f59e0b; }
+
+.opt-btn {
+    display: block; width: 100%; text-align: left; padding: 14px 18px;
+    background: #f1f5f9; border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 8px; font-size: 0.95rem; transition: 0.2s; color: var(--text);
+}
+.opt-btn.locked { cursor: not-allowed; }
+.opt-btn.unlocked { cursor: pointer; }
+.opt-btn.unlocked:hover { background: #e0f2fe; border-color: var(--sky); }
+.opt-btn.selected { background: var(--primary); border-color: var(--primary); color: white; font-weight: 600; }
+
+#q-navigator {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 16px;
+}
+.qnav-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1.5px solid var(--border); background: #f1f5f9;
+    font-size: 0.72rem; font-weight: 700; cursor: pointer;
+    color: var(--muted); transition: 0.15s; display: flex; align-items: center; justify-content: center;
+}
+.qnav-btn.current { border-color: var(--primary); background: var(--primary); color: white; }
+.qnav-btn.answered { border-color: var(--succ); background: #d1fae5; color: #065f46; }
+.qnav-btn.answered.current { background: var(--primary); color: white; border-color: var(--primary); }
+
+.nav-row { display: flex; gap: 10px; margin-top: 20px; }
+.btn { padding: 12px 24px; border-radius: 8px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.75rem; font-weight: bold; border: none; }
+.btn-next { background: var(--primary); color: white; flex-grow: 1; }
+.btn-submit { background: var(--succ); color: white; }
+.btn-back { background: #94a3b8; color: white; }
+.btn-pdf { background: #7c3aed; color: white; }
+.btn-bookmark { background: #fef3c7; color: #92400e; border: 2px solid #fbbf24 !important; font-size: 0.7rem !important; }
+.btn-bookmark.active { background: #f59e0b; color: white; border-color: #d97706 !important; }
+
+.sol-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 5px solid #cbd5e1; }
+.sol-box.correct { border-left-color: var(--succ); background: #ecfdf5; }
+.sol-box.wrong { border-left-color: var(--err); background: #fef2f2; }
+.sol-box.skipped { border-left-color: #94a3b8; }
+
+.status-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+.tag-correct { background: #d1fae5; color: #065f46; }
+.tag-wrong { background: #fee2e2; color: #991b1b; }
+.tag-skipped { background: #f1f5f9; color: #475569; }
+
+.opt-list { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+.opt-row { font-size: 0.85rem; padding: 7px 12px; border-radius: 7px; border: 1px solid transparent; }
+.opt-row.is-correct { background: #d1fae5; border-color: #6ee7b7; color: #065f46; font-weight: 600; }
+.opt-row.is-user { background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-weight: 600; }
+.opt-row.is-both { background: #d1fae5; border-color: #6ee7b7; color: #065f46; font-weight: 600; }
+.opt-row.neutral { background: #f8fafc; color: var(--muted); }
+
+</style>
+</head>
+<body>
+
+<div class="app-header">
+    <h1 onclick="app.showHome()">UPSC</h1>
+    <div id="timer" style="display:none;">20:00</div>
+</div>
+
+<div class="screen active" id="screen-home">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="app.filterHome('topics')">TOPICS</button>
+        <button class="tab-btn" onclick="app.filterHome('bookmarks')">SAVED (★)</button>
+        <button class="tab-btn" onclick="app.filterHome('blunders')">MISTAKES (✗)</button>
+    </div>
+    <div class="topic-grid" id="home-container"></div>
+</div>
+
+<div class="screen" id="screen-sets">
+    <button class="btn btn-back" style="margin-bottom:15px;" onclick="app.showHome()">← BACK</button>
+    <h2 id="active-topic-title" style="font-family:'Orbitron'; font-size:1rem; color:var(--primary); margin-bottom:15px;"></h2>
+    <div class="topic-grid" id="sets-container"></div>
+</div>
+
+<div class="screen" id="screen-test">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <button class="btn" style="background:#e0f2fe; color:#0284c7; border:1.5px solid #bae6fd; font-size:0.7rem; padding:8px 16px;" onclick="app.exitToHome()">&#127968; HOME</button>
+        <button class="btn" style="background:#f1f5f9; color:#475569; border:1.5px solid #cbd5e1; font-size:0.7rem; padding:8px 16px;" onclick="app.exitToSets()">&#8592; SETS</button>
+        <div id="attempt-counter" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <span id="counter-attempted" style="background:#d1fae5; color:#065f46; border:1.5px solid #6ee7b7; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:700; font-family:'Orbitron';">✓ 0</span>
+            <span id="counter-unattempted" style="background:#fee2e2; color:#991b1b; border:1.5px solid #fca5a5; border-radius:8px; padding:6px 12px; font-size:0.72rem; font-weight:700; font-family:'Orbitron';">✗ 0</span>
+        </div>
+    </div>
+    <div class="q-card">
+        <div id="q-text" style="font-weight:700;"></div>
+    </div>
+    <div id="options-area"></div>
+    <div class="nav-row">
+        <button class="btn btn-back" onclick="app.prev()">PREV</button>
+        <button class="btn btn-next" style="flex-grow:0; padding:12px 28px;" onclick="app.next()">NEXT</button>
+        <button class="btn btn-bookmark" id="q-bookmark" onclick="app.toggleBookmark()" title="Save this question">&#9733; SAVE</button>
+        <button class="btn btn-submit" onclick="app.submit()">SUBMIT</button>
+    </div>
+    <div id="q-navigator" style="margin-top:16px;"></div>
+</div>
+
+<div class="screen" id="screen-analysis">
+    <div id="score-card" style="background:white; padding:20px; border-radius:12px; text-align:center; margin-bottom:20px; border:2px solid var(--border)"></div>
+    <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+        <button class="btn btn-next" style="flex:1;" onclick="app.showHome()">FINISH REVIEW</button>
+        <button class="btn btn-pdf" onclick="app.downloadPDF()">⬇ DOWNLOAD PDF</button>
+    </div>
+    <div id="analysis-list"></div>
+</div>
+
+<script>
+const MASTER_DATA = {
+    "Ancient History": ``,
+    
+    "Modern History": ``, "World History": ``, "Static": ``,
+    "Indian Geography": ``, "World Geography": ``, "Ecology": ``, "Polity": ``, "Economics": ``,
+    "Physics": ``, "Chemistry": ``, "Zoology": ``, "Botany": ``,
+    "Miscellaneous": ``,
+    
+    
+    "Mix Mock": ``
+};
+
+const app = {
+    db: MASTER_DATA,
+    activeTopic: "", activeSet: null, allQs: [], testQs: [], userAns: {}, idx: 0,
+    timer: 1200, timerInt: null,
+    bookmarks: [],
+    blunders: [],
+    lastResult: null,
+
+    init() {
+        const RESET_KEY = 'ssc_reset_v1';
+        if (!localStorage.getItem(RESET_KEY)) {
+            localStorage.removeItem('ssc_favs');
+            localStorage.removeItem('ssc_errs');
+            localStorage.setItem(RESET_KEY, '1');
+        }
+        this.bookmarks = JSON.parse(localStorage.getItem('ssc_favs') || '[]');
+        this.blunders = JSON.parse(localStorage.getItem('ssc_errs') || '[]');
+        this.filterHome('topics');
+    },
+
+    filterHome(type) {
+        const cont = document.getElementById('home-container');
+        cont.innerHTML = "";
+        document.querySelectorAll('.tab-btn').forEach(b =>
+            b.classList.toggle('active', b.innerText.toLowerCase().includes(type))
+        );
+        const topicIcons = {
+            'Ancient History': '🏛️', 'Medieval History': '⚔️', 'Modern History': '📜',
+            'Geography': '🌍', 'Polity': '⚖️', 'Economy': '📈', 'Science': '🔬',
+            'Biology': '🧬', 'Physics': '⚡', 'Chemistry': '🧪', 'Environment': '🌿',
+            'Current Affairs': '📰', 'Maths': '🔢', 'Reasoning': '🧩',
+            'English': '📝', 'Computer': '💻', 'Art & Culture': '🎨',
+        };
+        if (type === 'topics') {
+            Object.keys(this.db).forEach(t => {
+                const card = document.createElement('div');
+                card.className = 'topic-card';
+                const icon = topicIcons[t] || '📚';
+                let qCount;
+                if (t === 'Mix Mock') {
+                    qCount = Object.keys(this.db).filter(k => k !== 'Mix Mock').reduce((sum, k) => sum + this.parse(this.db[k] || '').length, 0);
+                    const topicCount = Object.keys(this.db).filter(k => k !== 'Mix Mock' && this.parse(this.db[k] || '').length > 0).length;
+                    card.innerHTML = `<span class="card-icon">🎯</span><h3>${t.toUpperCase()}</h3><p class="card-meta">${topicCount} Topics · ${qCount} Questions</p>`;
+                } else {
+                    qCount = this.parse(this.db[t] || '').length;
+                    const sets = Math.ceil(qCount / 50);
+                    card.innerHTML = `<span class="card-icon">${icon}</span><h3>${t.toUpperCase()}</h3><p class="card-meta">${qCount} Questions · ${sets} Set${sets !== 1 ? 's' : ''}</p>`;
+                }
+                card.onclick = () => this.loadTopic(t);
+                cont.appendChild(card);
+            });
+        } else {
+            const list = type === 'bookmarks' ? this.bookmarks : this.blunders;
+            if (!list.length) { cont.innerHTML = `<p style='color:gray; grid-column:1/-1'>No questions here yet.</p>`; return; }
+            const groups = {};
+            list.forEach(q => {
+                const topic = q._topic || 'General';
+                const set = q._set || 1;
+                const key = `${topic}|||${set}`;
+                if (!groups[key]) groups[key] = { topic, set, qs: [] };
+                groups[key].qs.push(q);
+            });
+            const allCard = document.createElement('div');
+            allCard.className = 'topic-card';
+            allCard.innerHTML = `<h3>REVIEW ALL</h3><p style='font-size:0.75rem;color:var(--muted)'>${list.length} Questions</p>`;
+            allCard.onclick = () => this.startTest(list, 'Review All', null);
+            cont.appendChild(allCard);
+            Object.values(groups).forEach(g => {
+                const card = document.createElement('div');
+                card.className = 'topic-card';
+                const statusLabel = type === 'blunders'
+                    ? `<p style='font-size:0.65rem;color:#dc2626;margin-top:4px;'>${g.qs.filter(q=>q._status==='wrong').length} wrong · ${g.qs.filter(q=>q._status==='skipped').length} skipped</p>` : '';
+                card.innerHTML = `<h3 style='font-size:0.8rem;'>${g.topic.toUpperCase()}</h3>
+                    <p style='font-size:0.75rem;color:var(--primary);font-weight:700;'>SET ${g.set}</p>
+                    <p style='font-size:0.75rem;color:var(--muted)'>${g.qs.length} Questions</p>${statusLabel}`;
+                card.onclick = () => this.startTest(g.qs, g.topic, g.set);
+                cont.appendChild(card);
+            });
+        }
+    },
+
+    seededShuffle(arr, seed) {
+        // Simple seeded LCG-based shuffle (Knuth shuffle with deterministic RNG)
+        let s = seed;
+        function rand() {
+            s = (s * 1664525 + 1013904223) & 0xffffffff;
+            return (s >>> 0) / 0xffffffff;
+        }
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    },
+
+    getMixMockSeeds() {
+        const SEED_KEY = 'ssc_mixmock_seeds_v1';
+        let seeds = JSON.parse(localStorage.getItem(SEED_KEY) || 'null');
+        if (!seeds) {
+            seeds = {};
+            const topics = Object.keys(this.db).filter(k => k !== 'Mix Mock');
+            topics.forEach(t => {
+                seeds[t] = Math.floor(Math.random() * 2147483647) + 1;
+            });
+            localStorage.setItem(SEED_KEY, JSON.stringify(seeds));
+        }
+        return seeds;
+    },
+
+    loadTopic(topic) {
+        this.activeTopic = topic;
+        if (topic === 'Mix Mock') {
+            const seeds = this.getMixMockSeeds();
+            const mixTopics = Object.keys(this.db).filter(k => k !== 'Mix Mock');
+            const cont = document.getElementById('sets-container');
+            document.getElementById('active-topic-title').innerText = 'MIX MOCK';
+            cont.innerHTML = '';
+
+            const mixIcons = {
+                'Ancient History':'🏛️','Medieval History':'⚔️','Modern History':'📜',
+                'Indian Polity':'⚖️','Geography':'🌍','Economics':'📈',
+                'Physics':'⚡','Chemistry':'🧪','Biology':'🧬','Environment':'🌿',
+                'Art & Culture':'🎨','Computer GK':'💻','Static GK':'📌',
+                'Current Affairs':'📰','English Language':'📝','Reasoning':'🧩',
+                'Mathematics':'🔢','General Science':'🔬','World History':'🌐'
+            };
+            const cardColors = [
+                ['#dbeafe','#1d4ed8','#bfdbfe'],['#ede9fe','#6d28d9','#ddd6fe'],
+                ['#d1fae5','#065f46','#a7f3d0'],['#fef3c7','#92400e','#fde68a'],
+                ['#fee2e2','#991b1b','#fecaca'],['#e0f2fe','#0369a1','#bae6fd'],
+                ['#fce7f3','#9d174d','#fbcfe8'],['#f0fdf4','#166534','#bbf7d0'],
+                ['#fff7ed','#9a3412','#fed7aa'],['#f0f9ff','#075985','#bae6fd'],
+                ['#fdf4ff','#7e22ce','#e9d5ff'],['#ecfdf5','#064e3b','#6ee7b7'],
+                ['#fffbeb','#78350f','#fde68a'],['#fef2f2','#7f1d1d','#fecaca'],
+                ['#f0fdfa','#134e4a','#99f6e4'],['#fafaf9','#1c1917','#d6d3d1'],
+                ['#f7fee7','#3f6212','#d9f99d'],['#fff1f2','#9f1239','#fda4af'],
+                ['#eff6ff','#1e3a8a','#93c5fd']
+            ];
+
+            mixTopics.forEach((t, idx) => {
+                const qs = this.parse(this.db[t] || '');
+                if (qs.length === 0) return;
+                const shuffled = this.seededShuffle(qs, seeds[t]);
+                shuffled.forEach(q => { q._topic = t; });
+
+                const [bg, text, accent] = cardColors[idx % cardColors.length];
+                const icon = mixIcons[t] || '📚';
+                const sets = Math.ceil(shuffled.length / 50);
+                const card = document.createElement('div');
+                card.className = 'topic-card set-card';
+                card.style.cssText = `background:linear-gradient(145deg,#ffffff,${bg}); border-color:${accent};`;
+                card.innerHTML = `
+                    <span style="font-size:2rem; display:block; margin-bottom:8px;">${icon}</span>
+                    <h3 style="color:${text}; font-size:0.9rem;">${t.toUpperCase()}</h3>
+                    <p class="card-meta">${shuffled.length} Questions · ${sets} Set${sets !== 1 ? 's' : ''}</p>
+                    <div style="margin-top:12px;background:${accent};border-radius:6px;padding:5px 10px;display:inline-block;">
+                        <span style="font-size:0.65rem;font-weight:700;color:${text};font-family:'Orbitron';">START ▶</span>
+                    </div>`;
+                card.onclick = () => {
+                    this.allQs = shuffled;
+                    this.activeTopic = t + ' (Mix Mock)';
+                    this.renderSets();
+                };
+                cont.appendChild(card);
+            });
+            this.switchScreen('screen-sets');
+            return;
+        } else {
+            this.allQs = this.parse(this.db[topic] || "");
+        }
+        document.getElementById('active-topic-title').innerText = topic.toUpperCase();
+        this.renderSets();
+        this.switchScreen('screen-sets');
+    },
+
+    parse(raw) {
+        if (!raw || raw.trim() === "") return [];
+        return raw.trim().split(/Q\.\d+/).filter(b => b.trim()).map(block => {
+            const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+            let qText = "", opts = [], ans = "", exp = "";
+            lines.forEach(l => {
+                if (l.startsWith('A.')) opts[0] = l.slice(2).trim();
+                else if (l.startsWith('B.')) opts[1] = l.slice(2).trim();
+                else if (l.startsWith('C.')) opts[2] = l.slice(2).trim();
+                else if (l.startsWith('D.')) opts[3] = l.slice(2).trim();
+                else if (l.startsWith('Correct Answer:')) ans = l.slice(15).trim().toUpperCase();
+                else if (l.startsWith('Exp:')) exp = l.slice(4).trim();
+                else qText += l + " ";
+            });
+            return { q: qText.trim(), opts, correct: {'A':0,'B':1,'C':2,'D':3}[ans.charAt(0)], exp };
+        });
+    },
+
+    renderSets() {
+        const cont = document.getElementById('sets-container');
+        cont.innerHTML = this.allQs.length === 0
+            ? "<p style='color:gray'>Questions for this topic will be available soon.</p>" : "";
+        const setColors = [
+            ['#dbeafe','#1d4ed8','#bfdbfe'],['#ede9fe','#6d28d9','#ddd6fe'],
+            ['#d1fae5','#065f46','#a7f3d0'],['#fef3c7','#92400e','#fde68a'],
+            ['#fee2e2','#991b1b','#fecaca'],['#e0f2fe','#0369a1','#bae6fd'],
+            ['#fce7f3','#9d174d','#fbcfe8'],['#f0fdf4','#166534','#bbf7d0'],
+        ];
+        for (let i = 0; i < this.allQs.length; i += 50) {
+            const num = (i / 50) + 1;
+            const chunk = this.allQs.slice(i, i + 50);
+            const [bg, text, accent] = setColors[(num - 1) % setColors.length];
+            const card = document.createElement('div');
+            card.className = 'topic-card set-card';
+            card.style.cssText = `background:linear-gradient(145deg,#ffffff,${bg}); border-color:${accent};`;
+            card.innerHTML = `
+                <div style="width:48px;height:48px;border-radius:14px;background:${bg};border:2px solid ${accent};
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;
+                    font-family:'Orbitron';font-size:1.1rem;font-weight:700;color:${text};">${num}</div>
+                <h3 style="color:${text};">SET ${num}</h3>
+                <p class="card-meta">${chunk.length} Questions · 20 min</p>
+                <div style="margin-top:12px;background:${accent};border-radius:6px;padding:5px 10px;display:inline-block;">
+                    <span style="font-size:0.65rem;font-weight:700;color:${text};font-family:'Orbitron';">START ▶</span>
+                </div>`;
+            card.onclick = () => this.startTest(chunk, this.activeTopic, num);
+            cont.appendChild(card);
+        }
+    },
+
+    startTest(qs, topic, setNum) {
+        this.testQs = qs; this.userAns = {}; this.idx = 0; this.timer = 1200;
+        this.activeSet = setNum || null;
+        this.activeTopic = topic || this.activeTopic;
+        this.switchScreen('screen-test');
+        document.getElementById('timer').style.display = 'block';
+        this.renderQ();
+        this.renderNavigator();
+        this.startTimer();
+    },
+
+    renderNavigator() {
+        const nav = document.getElementById('q-navigator');
+        nav.innerHTML = '';
+        let attempted = 0;
+        this.testQs.forEach((_, i) => {
+            const btn = document.createElement('button');
+            const isAnswered = this.userAns[i] !== undefined;
+            if (isAnswered) attempted++;
+            btn.className = 'qnav-btn' +
+                (isAnswered ? ' answered' : '') +
+                (i === this.idx ? ' current' : '');
+            btn.textContent = i + 1;
+            btn.onclick = () => { this.idx = i; this.renderQ(); this.renderNavigator(); };
+            nav.appendChild(btn);
+        });
+        const total = this.testQs.length;
+        const unattempted = total - attempted;
+        const ca = document.getElementById('counter-attempted');
+        const cu = document.getElementById('counter-unattempted');
+        if (ca) ca.textContent = `✓ ${attempted} Attempted`;
+        if (cu) cu.textContent = `✗ ${unattempted} Left`;
+    },
+
+    renderQ() {
+        const q = this.testQs[this.idx];
+        document.getElementById('q-text').innerText = `Q.${this.idx + 1}: ${q.q}`;
+        const bmBtn = document.getElementById('q-bookmark');
+        const isBookmarked = this.bookmarks.some(b => b.q === q.q);
+        bmBtn.classList.toggle('active', isBookmarked);
+        bmBtn.textContent = isBookmarked ? '★ SAVED' : '★ SAVE';
+        document.getElementById('options-area').innerHTML = q.opts.map((o, i) => {
+            const isSelected = this.userAns[this.idx] === i;
+            const selClass = isSelected ? 'selected' : '';
+            return `<button class="opt-btn unlocked ${selClass}" onclick="app.select(${i})"><b>${String.fromCharCode(65+i)}.</b> ${o}</button>`;
+        }).join('');
+        this.renderNavigator();
+    },
+
+    toggleBookmark() {
+        const q = this.testQs[this.idx];
+        const exists = this.bookmarks.findIndex(b => b.q === q.q);
+        if (exists > -1) this.bookmarks.splice(exists, 1);
+        else {
+            const tagged = Object.assign({}, q, { _topic: this.activeTopic, _set: this.activeSet });
+            this.bookmarks.push(tagged);
+        }
+        localStorage.setItem('ssc_favs', JSON.stringify(this.bookmarks));
+        this.renderQ();
+    },
+
+    select(i) {
+        if (this.userAns[this.idx] === i) delete this.userAns[this.idx];
+        else this.userAns[this.idx] = i;
+        this.renderQ();
+    },
+
+    next() { if (this.idx < this.testQs.length - 1) { this.idx++; this.renderQ(); } },
+    prev() { if (this.idx > 0) { this.idx--; this.renderQ(); } },
+
+    startTimer() {
+        clearInterval(this.timerInt);
+        this.timerInt = setInterval(() => {
+            this.timer--;
+            const m = Math.floor(this.timer / 60), s = this.timer % 60;
+            document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+            if (this.timer <= 0) this.submit();
+        }, 1000);
+    },
+
+    submit() {
+        clearInterval(this.timerInt);
+        this.switchScreen('screen-analysis');
+        document.getElementById('timer').style.display = 'none';
+
+        let r = 0, w = 0, s = 0;
+        const rows = [];
+
+        const attemptKey = `ssc_attempt_${Date.now()}`;
+        const attemptData = { topic: this.activeTopic, date: new Date().toLocaleString(), answers: this.userAns, questions: this.testQs };
+        localStorage.setItem(attemptKey, JSON.stringify(attemptData));
+
+        const entries = this.testQs.map((q, i) => {
+            const u = this.userAns[i];
+            let statusClass = "skipped", tagLabel = "Skipped";
+            if (u === undefined) {
+                s++;
+                if (!this.blunders.some(b => b.q === q.q)) {
+                    const tagged = Object.assign({}, q, { _topic: this.activeTopic, _set: this.activeSet, _status: 'skipped' });
+                    this.blunders.push(tagged);
+                }
+            } else if (u === q.correct) { r++; statusClass = "correct"; tagLabel = "Correct"; }
+            else {
+                w++; statusClass = "wrong"; tagLabel = "Wrong";
+                if (!this.blunders.some(b => b.q === q.q)) {
+                    const tagged = Object.assign({}, q, { _topic: this.activeTopic, _set: this.activeSet, _status: 'wrong' });
+                    this.blunders.push(tagged);
+                }
+            }
+            rows.push({ q, i, u, statusClass, tagLabel });
+            return { q, i, u, statusClass, tagLabel };
+        });
+
+        const sortOrder = { wrong: 0, skipped: 1, correct: 2 };
+        const sortedEntries = [...entries].sort((a, b) => sortOrder[a.statusClass] - sortOrder[b.statusClass]);
+
+        const listHtml = sortedEntries.map(({ q, i, u, statusClass, tagLabel }) => {
+            const optsHtml = q.opts.map((opt, oi) => {
+                let cls = 'neutral';
+                if (oi === q.correct && u !== undefined && oi === u) cls = 'is-both';
+                else if (oi === q.correct) cls = 'is-correct';
+                else if (u !== undefined && oi === u) cls = 'is-user';
+                const label = oi === q.correct
+                    ? (u !== undefined && oi === u ? '✓ Your answer (Correct)' : '✓ Correct Answer')
+                    : (u !== undefined && oi === u ? '✗ Your Answer' : '');
+                const suffix = label ? ` <span style="font-size:0.7rem; opacity:0.85;">${label}</span>` : '';
+                return `<div class="opt-row ${cls}"><b>${String.fromCharCode(65+oi)}.</b> ${opt}${suffix}</div>`;
+            }).join('');
+            return `<div class="sol-box ${statusClass}">
+                <span class="status-tag tag-${statusClass}">${tagLabel}</span>
+                <p><b>Q.${i+1}</b> ${q.q}</p>
+                <div class="opt-list">${optsHtml}</div>
+                ${q.exp ? `<p style="margin-top:10px; font-size:0.82rem; color:var(--muted)"><b>Exp:</b> ${q.exp}</p>` : ''}
+            </div>`;
+        }).join('');
+
+        localStorage.setItem('ssc_errs', JSON.stringify(this.blunders));
+        const finalScore = (r * 1) - (w * 0.33);
+        this.lastResult = { r, w, s, finalScore, rows, topic: this.activeTopic, date: new Date().toLocaleString() };
+
+        document.getElementById('score-card').innerHTML = `
+            <h1 style="font-size:2.5rem; color:var(--primary); font-family:'Orbitron';">${finalScore.toFixed(2)}</h1>
+            <p style="margin-top:8px;">Correct: <b style="color:var(--succ)">${r}</b> &nbsp;|&nbsp; Wrong: <b style="color:var(--err)">${w}</b> &nbsp;|&nbsp; Skipped: <b>${s}</b></p>
+            <p style="font-size:0.75rem; color:var(--muted); margin-top:4px;">${this.lastResult.date}</p>`;
+        document.getElementById('analysis-list').innerHTML = listHtml;
+    },
+
+    downloadPDF() {
+        const res = this.lastResult;
+        if (!res) { alert('No result to export yet.'); return; }
+
+        const now = new Date();
+        const time = now.toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true });
+        const totalQs = res.r + res.w + res.s;
+        const setLabel = this.activeSet ? 'Set ' + this.activeSet : 'Review';
+        const topicLabel = res.topic || 'Mock';
+
+        const appDiv = document.getElementById('app-content') || document.body;
+        const useBodySwap = !document.getElementById('app-content');
+
+        const origTitle = document.title;
+        document.title = `MOCK TEST RESULT - ${topicLabel}`;
+
+        let printStyle = document.getElementById('__print_style__');
+        if (!printStyle) { printStyle = document.createElement('style'); printStyle.id = '__print_style__'; document.head.appendChild(printStyle); }
+        printStyle.textContent = `@media print { @page { size: A4; margin: 18mm 15mm 18mm 15mm; } body { background: #fff !important; color: #000 !important; } .app-header { display: none !important; } .print-q-block { page-break-inside: avoid; break-inside: avoid; } .print-footer { page-break-before: avoid; } }`;
+
+        const sortOrder = { wrong: 0, skipped: 1, correct: 2 };
+        const sortedRows = [...res.rows].sort((a, b) => sortOrder[a.statusClass] - sortOrder[b.statusClass]);
+
+        let pdfHTML = `
+        <div id="__pdf_root__" style="background:#fff;color:#000;font-family:'Inter',sans-serif;padding:0;margin:0;">
+            <div style="border:2.5px solid #000;padding:18px 22px 14px;margin-bottom:22px;">
+                <div style="text-align:center;border-bottom:1.5px solid #000;padding-bottom:10px;margin-bottom:12px;">
+                    <div style="font-size:11px;letter-spacing:3px;color:#111;font-weight:700;text-transform:uppercase;margin-bottom:4px;">THE SSC SCHOLARS OFFICIAL</div>
+                    <div style="font-size:22px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#003399;">MOCK TEST RESULT</div>
+                    <div style="font-size:12px;color:#111;font-weight:600;margin-top:4px;letter-spacing:1px;">PREVIOUS YEAR QUESTIONS</div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:13px;color:#000;">
+                    <tr>
+                        <td style="padding:4px 8px;font-weight:bold;width:22%;">CHAPTER / TOPIC</td>
+                        <td style="padding:4px 8px;border-left:1px solid #999;font-weight:700;text-transform:uppercase;">${topicLabel}</td>
+                        <td style="padding:4px 8px;font-weight:bold;width:20%;border-left:1px solid #999;">SET</td>
+                        <td style="padding:4px 8px;border-left:1px solid #999;font-weight:700;">${setLabel}</td>
+                    </tr>
+                    <tr style="border-top:1px solid #999;">
+                        <td style="padding:4px 8px;font-weight:bold;">TOTAL QUESTIONS</td>
+                        <td style="padding:4px 8px;border-left:1px solid #999;font-weight:700;">${totalQs}</td>
+                        <td style="padding:4px 8px;font-weight:bold;border-left:1px solid #999;">DOWNLOADED ON</td>
+                        <td style="padding:4px 8px;border-left:1px solid #999;font-weight:600;">${time}</td>
+                    </tr>
+                </table>
+                <div style="margin-top:12px;display:flex;gap:10px;">
+                    <div style="flex:1;padding:8px 14px;background:#d4f5d4;border-left:4px solid #005500;font-size:13px;font-weight:700;color:#005500;">✓ Correct: ${res.r}</div>
+                    <div style="flex:1;padding:8px 14px;background:#ffd4d4;border-left:4px solid #aa0000;font-size:13px;font-weight:700;color:#aa0000;">✗ Wrong: ${res.w}</div>
+                    <div style="flex:1;padding:8px 14px;background:#f0f0f0;border-left:4px solid #555;font-size:13px;font-weight:700;color:#555;">– Skipped: ${res.s}</div>
+                    <div style="flex:1;padding:8px 14px;background:#d4eaff;border-left:4px solid #003399;font-size:13px;font-weight:700;color:#003399;">Score: ${res.finalScore.toFixed(2)}</div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;">`;
+
+        sortedRows.forEach((entry, idx) => {
+            const { q, i, u, statusClass, tagLabel } = entry;
+            const borderColor = statusClass === 'correct' ? '#005500' : statusClass === 'wrong' ? '#aa0000' : '#555';
+            const tagBg = statusClass === 'correct' ? '#d4f5d4' : statusClass === 'wrong' ? '#ffd4d4' : '#f0f0f0';
+            const tagColor = statusClass === 'correct' ? '#005500' : statusClass === 'wrong' ? '#aa0000' : '#555';
+
+            pdfHTML += `
+                <div class="print-q-block" style="page-break-inside:avoid;break-inside:avoid;border:1px solid #999;border-top:none;padding:12px 14px;${idx===0?'border-top:1px solid #999;':''}">
+                    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                        <span style="font-size:12px;font-weight:900;color:#000;white-space:nowrap;min-width:28px;">Q.${i+1}</span>
+                        <span style="font-size:13.5px;font-weight:600;line-height:1.5;color:#000;flex:1;">${q.q}</span>
+                        <span style="white-space:nowrap;font-size:10px;font-weight:700;border:1px solid ${borderColor};padding:1px 7px;background:${tagBg};color:${tagColor};">${tagLabel.toUpperCase()}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin:0 0 8px 36px;font-size:13px;">
+                        ${q.opts.map((opt, oi) => {
+                            const isAns = oi === q.correct;
+                            const isUser = u !== undefined && oi === u;
+                            let bg = 'transparent', color = '#111', weight = 'normal', extra = '';
+                            if (isAns && isUser) { bg='#d4f5d4'; color='#005500'; weight='bold'; extra=' ✓'; }
+                            else if (isAns) { bg='#d4f5d4'; color='#005500'; weight='bold'; extra=' ✓'; }
+                            else if (isUser) { bg='#ffd4d4'; color='#aa0000'; weight='bold'; extra=' ✗'; }
+                            return `<div style="background:${bg};color:${color};font-weight:${weight};padding:2px 6px;">${String.fromCharCode(65+oi)}. ${opt}${extra}</div>`;
+                        }).join('')}
+                    </div>
+                    <div style="font-size:12px;border-top:1px dashed #aaa;padding-top:7px;margin-top:4px;">
+                        <span style="font-weight:bold;color:#005500;">ANS: ${String.fromCharCode(65+q.correct)}</span>
+                        ${u !== undefined && u !== q.correct ? `<span style="margin-left:12px;font-weight:bold;color:#aa0000;">YOUR ANS: ${String.fromCharCode(65+u)}</span>` : ''}
+                    </div>
+                    ${q.exp ? `<div style="font-size:12px;color:#000;background:#f5f5e0;padding:7px 10px;border-left:3px solid #555;margin-top:8px;line-height:1.6;"><b>EXP:</b> ${q.exp}</div>` : ''}
+                </div>`;
+        });
+
+        pdfHTML += `</div>
+            <div class="print-footer" style="margin-top:28px;border-top:2px solid #000;padding-top:12px;text-align:center;page-break-inside:avoid;">
+                <div style="font-size:13px;font-weight:bold;letter-spacing:1px;color:#000;">THE SSC SCHOLARS OFFICIAL</div>
+                <div style="font-size:11px;color:#000;font-weight:600;margin-top:3px;">Join us on Telegram: <a href="https://t.me/thesscscholarsofficial" style="color:#0066cc;font-weight:700;">t.me/thesscscholarsofficial</a></div>
+                <div style="font-size:10px;color:#222;margin-top:4px;">Generated: ${time} &nbsp;|&nbsp; ${topicLabel} &nbsp;|&nbsp; ${setLabel}</div>
+            </div>
+        </div>`;
+
+        const screens = document.querySelectorAll('.screen, .app-header');
+        const hiddenScreens = [];
+        screens.forEach(s => { hiddenScreens.push({ el: s, display: s.style.display }); s.style.display = 'none'; });
+
+        const tempDiv = document.createElement('div');
+        tempDiv.id = '__pdf_temp__';
+        tempDiv.innerHTML = pdfHTML;
+        document.body.appendChild(tempDiv);
+
+        window.print();
+
+        document.title = origTitle;
+        document.body.removeChild(tempDiv);
+        hiddenScreens.forEach(({ el, display }) => { el.style.display = display; });
+        return;
+    },
+
+    exitToHome() {
+        if (confirm('Quit the test and go to Home? Your progress will be lost.')) this.showHome();
+    },
+
+    exitToSets() {
+        if (confirm('Quit the test and go back to Sets? Your progress will be lost.')) {
+            clearInterval(this.timerInt);
+            document.getElementById('timer').style.display = 'none';
+            this.switchScreen('screen-sets');
+        }
+    },
+
+    showHome() {
+        this.filterHome('topics');
+        this.switchScreen('screen-home');
+        clearInterval(this.timerInt);
+        document.getElementById('timer').style.display = 'none';
+    },
+
+    switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        window.scrollTo(0, 0);
+    }
+};
+
+app.init();
+</script>
+
+</body>
+</html>
